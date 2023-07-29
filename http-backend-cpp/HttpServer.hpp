@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <filesystem>
 #include <fstream>
 #include <regex>
 #include <map>
@@ -7,6 +8,7 @@
 
 namespace http {
 	using asio::ip::tcp;
+	namespace fs = std::filesystem;
 
 	class Response {
 	public:
@@ -15,6 +17,7 @@ namespace http {
 		void sendStatus(const unsigned int statusCode);
 		void send(const char* data, const std::size_t size, const unsigned int code = 200);
 		void send(const std::string& text, const unsigned int code = 200);
+		void sendFile(const std::string& path, const unsigned int code = 200);
 		void sendDocument(const std::string& path, const unsigned int code = 200);
 		void addVariable(const std::string& name, const std::string& value);
 
@@ -29,6 +32,7 @@ namespace http {
 	public:
 		void listen(int port, std::function<void()> callback = nullptr);
 		void get(const std::string& uri, std::function<void(Response&)> callback);
+		void setPublic(const std::string& path);
 		void set404(std::function<void(Response&)> callback);
 
 	private:
@@ -60,5 +64,6 @@ namespace http {
 		};
 		std::vector<Route> routes;
 		std::function<void(Response&)> notFoundCallback;
+		std::string publicFolder = "public";
 	};
 }

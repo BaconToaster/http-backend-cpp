@@ -4,9 +4,16 @@ int main() {
 	const int port = 3000;
 	http::HttpServer app;
 
+	app.setPublic("public"); // will set the public folder to ./public/ which is the default
+
 	app.get("/", [](http::Response& res) {
 		res.addVariable("heading", "Hello World");
-		res.addVariable("somevar", "idk what to do her");
+		/*
+		* in the html code variables are used like this: {{ VARIABLE_NAME }}
+		* example: {{ heading }} -> results in Hello World
+		*/
+		res.addVariable("somevar", "idk what to put here");
+
 		res.sendDocument("views/index.html");
 	});
 

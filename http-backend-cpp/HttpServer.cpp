@@ -14,8 +14,25 @@ namespace http {
 	void Response::send(const std::string& text, const unsigned int code) {
 		send(text.data(), text.size(), code);
 	}
+	void Response::sendFile(const std::string& path, const unsigned int code) {
+		std::ifstream file(path, std::ios::binary | std::ios::ate);
+		if (!file.good()) {
+			sendStatus(500);
+			return;
+		}
+		std::vector<char> fileContents(file.tellg());
+		file.seekg(0, std::ios::beg);
+		if (!file.read(fileContents.data(), fileContents.size())) {
+			return;
+		}
+		send(fileContents.data(), fileContents.size(), code);
+	}
 	void Response::sendDocument(const std::string& path, const unsigned int code) {
 		std::ifstream file(path, std::ios::binary | std::ios::ate);
+		if (!file.good()) {
+			sendStatus(500);
+			return;
+		}
 		std::vector<char> fileContents(file.tellg());
 		file.seekg(0, std::ios::beg);
 		if (!file.read(fileContents.data(), fileContents.size())) {
@@ -77,6 +94,9 @@ namespace http {
 	void HttpServer::set404(std::function<void(Response&)> callback) {
 		notFoundCallback = callback;
 	}
+	void HttpServer::setPublic(const std::string& path) {
+		publicFolder = path;
+	}
 
 	void HttpServer::handleClient(tcp::socket socket) {
 		char buffer[1024]{};
@@ -105,6 +125,20 @@ namespace http {
 
 		Response response = Response(socket);
 		if (currentRoute == routes.end()) {
+			try {
+				for (const auto& entry : fs::directory_iterator(publicFolder)) {
+					std::string path = entry.path().string().substr(publicFolder.size());
+					std::replace(path.begin(), path.end(), '\\', '/');
+					if (route.uri == path) {
+						response.sendFile(entry.path().string());
+						return;
+					}
+				}
+			}
+			catch (std::exception& e) {
+				printf("Error in %s line %d: %s\n", __FILE__, __LINE__, e.what());
+			}
+
 			// send 404
 			if (notFoundCallback) {
 				notFoundCallback(response);
